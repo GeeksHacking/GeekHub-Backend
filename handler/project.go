@@ -26,6 +26,7 @@ func NewProject(usecase usecase.Project) *project {
 func (p *project) NewRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{ID}", p.Find)
+	r.Get("/{ID}/languages", p.FindLanguages)
 	r.Get("/user/{userID}", p.FindByUserID)
 	r.Post("/", p.Create)
 	r.Patch("/{ID}", p.Update)
@@ -59,6 +60,39 @@ func (p *project) Find(w http.ResponseWriter, r *http.Request) {
 		Description: result.Description,
 		Repository:  result.Repository,
 	}})
+}
+
+func (p *project) FindLanguages(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParamFromCtx(r.Context(), "ID")
+
+	ID, err := strconv.Atoi(projectID)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid project ID"})
+		return
+	}
+
+	result, err := p.usecase.Find(r.Context(), ID)
+	var notFoundError *ent.NotFoundError
+	if errors.As(err, &notFoundError) {
+		render.DefaultResponder(w, r, render.M{"error": "could not find project"})
+		return
+	}
+
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	languages, err := result.QueryLanguages().All(r.Context())
+	res := make([]payload.LanguageResponse, 0, len(languages))
+	for _, language := range languages {
+		res = append(res, payload.LanguageResponse{
+			ID:   language.ID,
+			Name: language.Name,
+		})
+	}
+
+	render.DefaultResponder(w, r, render.M{"data": res})
 }
 
 func (p *project) FindByUserID(w http.ResponseWriter, r *http.Request) {

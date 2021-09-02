@@ -68,3 +68,7 @@ func (p *project) Update(ctx context.Context, model ent.Project) (*ent.Project, 
 
 	return result, nil
 }
+
+func (p *project) BulkAddLanguage(ctx context.Context, ID int, models []*ent.Language) (*ent.Project, error) {
+	return p.client.Project.UpdateOneID(ID).AddLanguages(models...).Save(ctx)
+}
