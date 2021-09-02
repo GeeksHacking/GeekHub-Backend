@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/geekshacking/geekhub-backend/ent"
 	"github.com/geekshacking/geekhub-backend/payload"
@@ -23,6 +24,7 @@ func (p *project) NewRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{ID}", p.Find)
 	r.Get("/user/{userID}", p.FindByUserID)
+	r.Post("/", p.Create)
 	return r
 }
 
@@ -58,9 +60,10 @@ func (p *project) Find(w http.ResponseWriter, r *http.Request) {
 func (p *project) FindByUserID(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("userID").(string)
 
-	result, err := p.usecase.FindByUserID(r.Context(), userID)
+	result, err := p.usecase.FindByUserAuth0ID(r.Context(), userID)
 	if err != nil {
 		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
 	}
 
 	projects := make([]payload.ProjectResponse, 0, len(result))
@@ -74,4 +77,32 @@ func (p *project) FindByUserID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.DefaultResponder(w, r, render.M{"data": projects})
+}
+
+func (p *project) Create(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
+
+	var body payload.CreateProjectRequest
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid body"})
+		return
+	}
+
+	result, err := p.usecase.Create(r.Context(), body.Name, body.Description, body.Repository, userID, []*ent.User{}, []*ent.Tag{}, []*ent.Ticket{})
+	if errors.Is(err, usecase.ErrInvalidGitHubRepository) {
+		render.DefaultResponder(w, r, render.M{"error": "invalid repository"})
+		return
+	}
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	render.DefaultResponder(w, r, render.M{"data": payload.ProjectResponse{
+		ID:          result.ID,
+		Name:        result.Name,
+		Description: result.Description,
+		Repository:  result.Repository,
+	}})
 }

@@ -79,8 +79,11 @@ func main() {
 	r.Use(middleware.URLFormat)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
+	languageRepository := postgres.NewLanguage(client)
+	userRepository := postgres.NewUser(client)
+
 	projectRepository := postgres.NewProject(client)
-	projectUseCase := usecase.NewProject(projectRepository)
+	projectUseCase := usecase.NewProject(serverConfig, projectRepository, languageRepository, userRepository)
 	projectHandler := handler.NewProject(projectUseCase)
 	r.Mount("/projects", projectHandler.NewRouter())
 

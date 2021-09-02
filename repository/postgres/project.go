@@ -25,7 +25,7 @@ func (p *project) Find(ctx context.Context, ID int) (*ent.Project, error) {
 	return result, nil
 }
 
-func (p *project) FindByUserID(ctx context.Context, userID string) ([]*ent.Project, error) {
+func (p *project) FindByUserAuth0ID(ctx context.Context, userID string) ([]*ent.Project, error) {
 	result, err := p.client.User.Query().Where(entuser.Auth0ID(userID)).QueryProjects().All(ctx)
 	if err != nil {
 		return nil, err
@@ -34,26 +34,16 @@ func (p *project) FindByUserID(ctx context.Context, userID string) ([]*ent.Proje
 	return result, nil
 }
 
-func (p *project) Create(
-	ctx context.Context,
-	name string,
-	description string,
-	repository string,
-	owner *ent.User,
-	users []*ent.User,
-	tags []*ent.Tag,
-	tickets []*ent.Ticket,
-	languages []*ent.Language,
-) (*ent.Project, error) {
+func (p *project) Create(ctx context.Context, model ent.Project) (*ent.Project, error) {
 	result, err := p.client.Project.Create().
-		SetName(name).
-		SetDescription(description).
-		SetRepository(repository).
-		SetOwner(owner).
-		AddUsers(users...).
-		AddTags(tags...).
-		AddTickets(tickets...).
-		AddLanguages(languages...).
+		SetName(model.Name).
+		SetDescription(model.Description).
+		SetRepository(model.Repository).
+		SetOwner(model.Edges.Owner).
+		AddUsers(model.Edges.Users...).
+		AddTags(model.Edges.Tags...).
+		AddTickets(model.Edges.Tickets...).
+		AddLanguages(model.Edges.Languages...).
 		Save(ctx)
 	if err != nil {
 		return nil, err
@@ -62,27 +52,16 @@ func (p *project) Create(
 	return result, nil
 }
 
-func (p *project) Update(
-	ctx context.Context,
-	ID int,
-	name string,
-	description string,
-	repository string,
-	owner *ent.User,
-	users []*ent.User,
-	tags []*ent.Tag,
-	tickets []*ent.Ticket,
-	languages []*ent.Language,
-) (*ent.Project, error) {
-	result, err := p.client.Project.UpdateOneID(ID).
-		SetName(name).
-		SetDescription(description).
-		SetRepository(repository).
-		SetOwner(owner).
-		AddUsers(users...).
-		AddTags(tags...).
-		AddTickets(tickets...).
-		AddLanguages(languages...).
+func (p *project) Update(ctx context.Context, model ent.Project) (*ent.Project, error) {
+	result, err := p.client.Project.UpdateOneID(model.ID).
+		SetName(model.Name).
+		SetDescription(model.Description).
+		SetRepository(model.Repository).
+		SetOwner(model.Edges.Owner).
+		AddUsers(model.Edges.Users...).
+		AddTags(model.Edges.Tags...).
+		AddTickets(model.Edges.Tickets...).
+		AddLanguages(model.Edges.Languages...).
 		Save(ctx)
 	if err != nil {
 		return nil, err

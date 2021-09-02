@@ -7,33 +7,12 @@ import (
 
 type ProjectReader interface {
 	Find(ctx context.Context, ID int) (*ent.Project, error)
-	FindByUserID(ctx context.Context, userID string) ([]*ent.Project, error)
+	FindByUserAuth0ID(ctx context.Context, userID string) ([]*ent.Project, error)
 }
 
 type ProjectWriter interface {
-	Create(
-		ctx context.Context,
-		name string,
-		description string,
-		repository string,
-		owner *ent.User,
-		users []*ent.User,
-		tags []*ent.Tag,
-		tickets []*ent.Ticket,
-		languages []*ent.Language,
-	) (*ent.Project, error)
-	Update(
-		ctx context.Context,
-		ID int,
-		name string,
-		description string,
-		repository string,
-		owner *ent.User,
-		users []*ent.User,
-		tags []*ent.Tag,
-		tickets []*ent.Ticket,
-		languages []*ent.Language,
-	) (*ent.Project, error)
+	Create(ctx context.Context, model ent.Project) (*ent.Project, error)
+	Update(ctx context.Context, model ent.Project) (*ent.Project, error)
 }
 
 type Project interface {

@@ -6,3 +6,9 @@ type ProjectResponse struct {
 	Description string `json:"description"`
 	Repository  string `json:"repository"`
 }
+
+type CreateProjectRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Repository  string `json:"repository"`
+}
