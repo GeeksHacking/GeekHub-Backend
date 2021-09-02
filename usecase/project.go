@@ -24,9 +24,6 @@ type Project interface {
 		description string,
 		repository string,
 		ownerID string,
-		users []*ent.User,
-		tags []*ent.Tag,
-		tickets []*ent.Ticket,
 	) (*ent.Project, error)
 	Update(
 		ctx context.Context,
@@ -34,9 +31,6 @@ type Project interface {
 		name string,
 		description string,
 		repository string,
-		users []*ent.User,
-		tags []*ent.Tag,
-		tickets []*ent.Ticket,
 	) (*ent.Project, error)
 }
 
@@ -72,9 +66,6 @@ func (p *project) Create(
 	description string,
 	repository string,
 	ownerID string,
-	users []*ent.User,
-	tags []*ent.Tag,
-	tickets []*ent.Ticket,
 ) (*ent.Project, error) {
 	user, err := p.userRepository.FindByAuth0ID(ctx, ownerID)
 
@@ -109,7 +100,7 @@ func (p *project) Create(
 
 	entLanguages, err = p.languageRepository.CreateBulk(ctx, entLanguages)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create languages: %w", err)
 	}
 
 	result, err := p.repository.Create(ctx, ent.Project{
@@ -117,9 +108,6 @@ func (p *project) Create(
 		Description: description,
 		Repository:  repository,
 		Edges: ent.ProjectEdges{
-			Users:     users,
-			Tags:      tags,
-			Tickets:   tickets,
 			Languages: entLanguages,
 			Owner:     user,
 		},
@@ -137,11 +125,38 @@ func (p *project) Update(
 	name string,
 	description string,
 	repository string,
-	users []*ent.User,
-	tags []*ent.Tag,
-	tickets []*ent.Ticket,
 ) (*ent.Project, error) {
-	panic("")
+	languages, err := p.getRepositoryLanguages(ctx, repository)
+	if err != nil {
+		return nil, ErrInvalidGitHubRepository
+	}
+
+	entLanguages := make([]*ent.Language, len(languages))
+	for idx, language := range languages {
+		entLanguages[idx] = &ent.Language{
+			Name: language,
+		}
+	}
+
+	entLanguages, err = p.languageRepository.CreateBulk(ctx, entLanguages)
+	if err != nil {
+		return nil, fmt.Errorf("could not create languages: %w", err)
+	}
+
+	result, err := p.repository.Update(ctx, ent.Project{
+		ID:          ID,
+		Name:        name,
+		Description: description,
+		Repository:  repository,
+		Edges: ent.ProjectEdges{
+			Languages: entLanguages,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not update project: %w", err)
+	}
+
+	return result, nil
 }
 
 func (p *project) getRepositoryLanguages(ctx context.Context, repository string) ([]string, error) {

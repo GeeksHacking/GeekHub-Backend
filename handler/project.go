@@ -1,13 +1,16 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
+	"bytes"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/geekshacking/geekhub-backend/ent"
 	"github.com/geekshacking/geekhub-backend/payload"
 	"github.com/geekshacking/geekhub-backend/usecase"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+
+	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -25,6 +28,7 @@ func (p *project) NewRouter() chi.Router {
 	r.Get("/{ID}", p.Find)
 	r.Get("/user/{userID}", p.FindByUserID)
 	r.Post("/", p.Create)
+	r.Patch("/{ID}", p.Update)
 	return r
 }
 
@@ -89,7 +93,88 @@ func (p *project) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := p.usecase.Create(r.Context(), body.Name, body.Description, body.Repository, userID, []*ent.User{}, []*ent.Tag{}, []*ent.Ticket{})
+	if err = body.Validate(); err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "bad request", "details": err.Error()})
+		return
+	}
+
+	result, err := p.usecase.Create(r.Context(), body.Name, body.Description, body.Repository, userID)
+	if errors.Is(err, usecase.ErrInvalidGitHubRepository) {
+		render.DefaultResponder(w, r, render.M{"error": "invalid repository"})
+		return
+	}
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	render.DefaultResponder(w, r, render.M{"data": payload.ProjectResponse{
+		ID:          result.ID,
+		Name:        result.Name,
+		Description: result.Description,
+		Repository:  result.Repository,
+	}})
+}
+
+func (p *project) Update(w http.ResponseWriter, r *http.Request) {
+	_ = r.Context().Value("userID").(string)
+	projectIDParam := chi.URLParamFromCtx(r.Context(), "ID")
+
+	projectID, err := strconv.Atoi(projectIDParam)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid project ID"})
+		return
+	}
+
+	buffer := &bytes.Buffer{}
+	_, err = buffer.ReadFrom(r.Body)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid body"})
+		return
+	}
+
+	patch, err := jsonpatch.DecodePatch(buffer.Bytes())
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid JSON patch"})
+		return
+	}
+
+	project, err := p.usecase.Find(r.Context(), projectID)
+	var notFoundError *ent.NotFoundError
+	if errors.As(err, &notFoundError) {
+		render.DefaultResponder(w, r, render.M{"error": "could not find project"})
+		return
+	}
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	projectJSON, err := json.Marshal(project)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	modifiedJSON, err := patch.Apply([]byte(projectJSON))
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "could not apply update"})
+		return
+	}
+
+	var modified payload.UpdateProjectRequest
+	err = json.Unmarshal(modifiedJSON, &modified)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "could not apply update"})
+		return
+	}
+
+	if err = modified.Validate(); err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "bad request", "details": err.Error()})
+		return
+	}
+
+	result, err := p.usecase.Update(r.Context(), projectID, modified.Name, modified.Description, modified.Repository)
 	if errors.Is(err, usecase.ErrInvalidGitHubRepository) {
 		render.DefaultResponder(w, r, render.M{"error": "invalid repository"})
 		return

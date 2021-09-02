@@ -57,7 +57,6 @@ func (p *project) Update(ctx context.Context, model ent.Project) (*ent.Project, 
 		SetName(model.Name).
 		SetDescription(model.Description).
 		SetRepository(model.Repository).
-		SetOwner(model.Edges.Owner).
 		AddUsers(model.Edges.Users...).
 		AddTags(model.Edges.Tags...).
 		AddTickets(model.Edges.Tickets...).
