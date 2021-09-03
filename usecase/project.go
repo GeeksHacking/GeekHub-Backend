@@ -17,6 +17,7 @@ import (
 
 type Project interface {
 	Find(ctx context.Context, ID int) (*ent.Project, error)
+	FindUsers(ctx context.Context, ID int) ([]*ent.User, error)
 	FindByUserAuth0ID(ctx context.Context, userID string) ([]*ent.Project, error)
 	Create(
 		ctx context.Context,
@@ -49,6 +50,10 @@ func NewProject(config config.Config, repository repository.Project, languageRep
 
 func (p *project) Find(ctx context.Context, ID int) (*ent.Project, error) {
 	return p.repository.Find(ctx, ID)
+}
+
+func (p *project) FindUsers(ctx context.Context, ID int) ([]*ent.User, error) {
+	return p.userRepository.FindByProjectID(ctx, ID)
 }
 
 func (p *project) FindByUserAuth0ID(ctx context.Context, userID string) ([]*ent.Project, error) {
@@ -92,6 +97,7 @@ func (p *project) Create(
 		Repository:  repository,
 		Edges: ent.ProjectEdges{
 			Owner: user,
+			Users: []*ent.User{user},
 		},
 	})
 	if err != nil {

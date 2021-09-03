@@ -10,6 +10,7 @@ import (
 	"github.com/geekshacking/geekhub-backend/usecase"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	_ "github.com/lib/pq"
 
@@ -70,13 +71,20 @@ func main() {
 	if err != nil {
 		serverLogger.Zap.Fatalf("failed creating JWT middleware: %v", err)
 	}
-
+	r.Use(cors.Handler(cors.Options{
+		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 	r.Use(jwtMiddleware.Auth0().Handler)
 	r.Use(jwtMiddleware.User)
-	r.Use(loggerMiddleware.Request)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.URLFormat)
+	r.Use(loggerMiddleware.Request)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	userRepository := postgres.NewUser(client)

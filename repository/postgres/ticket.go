@@ -62,5 +62,23 @@ func (t *ticket) Create(ctx context.Context, ticket ent.Ticket) (*ent.Ticket, er
 }
 
 func (t *ticket) Update(ctx context.Context, ticket ent.Ticket) (*ent.Ticket, error) {
-	panic("implement me")
+	query := t.client.Ticket.UpdateOneID(ticket.ID).
+		SetName(ticket.Name).
+		SetDescription(ticket.Description).
+		SetType(ticket.Type).
+		SetStatus(ticket.Status)
+
+	if ticket.Edges.Reporter != nil {
+		query.SetReporter(ticket.Edges.Reporter)
+	}
+
+	if ticket.Edges.Assignee != nil {
+		query.SetAssignee(ticket.Edges.Assignee)
+	}
+
+	if ticket.Edges.Parent != nil {
+		query.SetParent(ticket.Edges.Parent)
+	}
+
+	return query.Save(ctx)
 }

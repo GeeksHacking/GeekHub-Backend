@@ -103,9 +103,16 @@ func (m *middleware) Auth0() *auth0middleware.JWTMiddleware {
 
 func (m *middleware) User(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := r.Context().Value("user").(*jwt.Token).Claims.(jwt.MapClaims)
+		token, ok := r.Context().Value("user").(*jwt.Token)
 		if !ok {
 			next.ServeHTTP(w, r)
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), "userID", claims["sub"].(string))

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"github.com/geekshacking/geekhub-backend/ent"
+	entproject "github.com/geekshacking/geekhub-backend/ent/project"
 	entuser "github.com/geekshacking/geekhub-backend/ent/user"
 	"github.com/geekshacking/geekhub-backend/repository"
 )
@@ -23,6 +24,10 @@ func (u *user) FindByAuth0ID(ctx context.Context, ID string) (result *ent.User, 
 		WithReportedTickets().
 		Only(ctx)
 	return
+}
+
+func (u *user) FindByProjectID(ctx context.Context, ID int) ([]*ent.User, error) {
+	return u.client.User.Query().WithProjects().Where(entuser.HasProjectsWith(entproject.ID(ID))).All(ctx)
 }
 
 func (u *user) Create(ctx context.Context, model ent.User) (result *ent.User, err error) {

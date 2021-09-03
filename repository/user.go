@@ -7,6 +7,7 @@ import (
 
 type UserReader interface {
 	FindByAuth0ID(ctx context.Context, ID string) (*ent.User, error)
+	FindByProjectID(ctx context.Context, ID int) ([]*ent.User, error)
 }
 
 type UserWriter interface {

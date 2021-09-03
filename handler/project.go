@@ -25,8 +25,10 @@ func NewProject(usecase usecase.Project) *project {
 
 func (p *project) NewRouter() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/", p.FindByUserID)
 	r.Get("/{ID}", p.Find)
-	r.Get("/user/{userID}", p.FindByUserID)
+	r.Get("/{ID}/users", p.FindUsers)
+
 	r.Post("/", p.Create)
 	r.Patch("/{ID}", p.Update)
 	return r
@@ -58,6 +60,38 @@ func (p *project) Find(w http.ResponseWriter, r *http.Request) {
 		Description: result.Description,
 		Repository:  result.Repository,
 	}})
+}
+
+func (p *project) FindUsers(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParamFromCtx(r.Context(), "ID")
+
+	ID, err := strconv.Atoi(projectID)
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "invalid project ID"})
+		return
+	}
+
+	result, err := p.usecase.FindUsers(r.Context(), ID)
+	if ent.IsNotFound(err) {
+		render.DefaultResponder(w, r, render.M{"error": "could not find project"})
+		return
+	}
+
+	if err != nil {
+		render.DefaultResponder(w, r, render.M{"error": "internal server error"})
+		return
+	}
+
+	response := make([]payload.UserResponse, 0, len(result))
+	for _, user := range result {
+		response = append(response, payload.UserResponse{
+			ID:          user.Auth0ID,
+			Email:       user.DisplayName,
+			DisplayName: user.DisplayName,
+		})
+	}
+
+	render.DefaultResponder(w, r, render.M{"data": response})
 }
 
 func (p *project) FindByUserID(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +188,7 @@ func (p *project) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modifiedJSON, err := patch.Apply([]byte(projectJSON))
+	modifiedJSON, err := patch.Apply(projectJSON)
 	if err != nil {
 		render.DefaultResponder(w, r, render.M{"error": "could not apply update"})
 		return
