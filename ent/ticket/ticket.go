@@ -36,16 +36,20 @@ const (
 	ProjectInverseTable = "projects"
 	// ProjectColumn is the table column denoting the project relation/edge.
 	ProjectColumn = "project_tickets"
-	// ReporterTable is the table that holds the reporter relation/edge. The primary key declared below.
-	ReporterTable = "user_reported_tickets"
+	// ReporterTable is the table that holds the reporter relation/edge.
+	ReporterTable = "tickets"
 	// ReporterInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	ReporterInverseTable = "users"
-	// AssigneeTable is the table that holds the assignee relation/edge. The primary key declared below.
-	AssigneeTable = "user_assigned_tickets"
+	// ReporterColumn is the table column denoting the reporter relation/edge.
+	ReporterColumn = "user_reported_tickets"
+	// AssigneeTable is the table that holds the assignee relation/edge.
+	AssigneeTable = "tickets"
 	// AssigneeInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	AssigneeInverseTable = "users"
+	// AssigneeColumn is the table column denoting the assignee relation/edge.
+	AssigneeColumn = "user_assigned_tickets"
 	// ParentTable is the table that holds the parent relation/edge.
 	ParentTable = "tickets"
 	// ParentColumn is the table column denoting the parent relation/edge.
@@ -66,16 +70,9 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"project_tickets",
 	"ticket_parent",
+	"user_reported_tickets",
+	"user_assigned_tickets",
 }
-
-var (
-	// ReporterPrimaryKey and ReporterColumn2 are the table columns denoting the
-	// primary key for the reporter relation (M2M).
-	ReporterPrimaryKey = []string{"user_id", "ticket_id"}
-	// AssigneePrimaryKey and AssigneeColumn2 are the table columns denoting the
-	// primary key for the assignee relation (M2M).
-	AssigneePrimaryKey = []string{"user_id", "ticket_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {

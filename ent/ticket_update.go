@@ -71,34 +71,42 @@ func (tu *TicketUpdate) SetProject(p *Project) *TicketUpdate {
 	return tu.SetProjectID(p.ID)
 }
 
-// AddReporterIDs adds the "reporter" edge to the User entity by IDs.
-func (tu *TicketUpdate) AddReporterIDs(ids ...int) *TicketUpdate {
-	tu.mutation.AddReporterIDs(ids...)
+// SetReporterID sets the "reporter" edge to the User entity by ID.
+func (tu *TicketUpdate) SetReporterID(id int) *TicketUpdate {
+	tu.mutation.SetReporterID(id)
 	return tu
 }
 
-// AddReporter adds the "reporter" edges to the User entity.
-func (tu *TicketUpdate) AddReporter(u ...*User) *TicketUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableReporterID sets the "reporter" edge to the User entity by ID if the given value is not nil.
+func (tu *TicketUpdate) SetNillableReporterID(id *int) *TicketUpdate {
+	if id != nil {
+		tu = tu.SetReporterID(*id)
 	}
-	return tu.AddReporterIDs(ids...)
-}
-
-// AddAssigneeIDs adds the "assignee" edge to the User entity by IDs.
-func (tu *TicketUpdate) AddAssigneeIDs(ids ...int) *TicketUpdate {
-	tu.mutation.AddAssigneeIDs(ids...)
 	return tu
 }
 
-// AddAssignee adds the "assignee" edges to the User entity.
-func (tu *TicketUpdate) AddAssignee(u ...*User) *TicketUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetReporter sets the "reporter" edge to the User entity.
+func (tu *TicketUpdate) SetReporter(u *User) *TicketUpdate {
+	return tu.SetReporterID(u.ID)
+}
+
+// SetAssigneeID sets the "assignee" edge to the User entity by ID.
+func (tu *TicketUpdate) SetAssigneeID(id int) *TicketUpdate {
+	tu.mutation.SetAssigneeID(id)
+	return tu
+}
+
+// SetNillableAssigneeID sets the "assignee" edge to the User entity by ID if the given value is not nil.
+func (tu *TicketUpdate) SetNillableAssigneeID(id *int) *TicketUpdate {
+	if id != nil {
+		tu = tu.SetAssigneeID(*id)
 	}
-	return tu.AddAssigneeIDs(ids...)
+	return tu
+}
+
+// SetAssignee sets the "assignee" edge to the User entity.
+func (tu *TicketUpdate) SetAssignee(u *User) *TicketUpdate {
+	return tu.SetAssigneeID(u.ID)
 }
 
 // SetParentID sets the "parent" edge to the Ticket entity by ID.
@@ -131,46 +139,16 @@ func (tu *TicketUpdate) ClearProject() *TicketUpdate {
 	return tu
 }
 
-// ClearReporter clears all "reporter" edges to the User entity.
+// ClearReporter clears the "reporter" edge to the User entity.
 func (tu *TicketUpdate) ClearReporter() *TicketUpdate {
 	tu.mutation.ClearReporter()
 	return tu
 }
 
-// RemoveReporterIDs removes the "reporter" edge to User entities by IDs.
-func (tu *TicketUpdate) RemoveReporterIDs(ids ...int) *TicketUpdate {
-	tu.mutation.RemoveReporterIDs(ids...)
-	return tu
-}
-
-// RemoveReporter removes "reporter" edges to User entities.
-func (tu *TicketUpdate) RemoveReporter(u ...*User) *TicketUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return tu.RemoveReporterIDs(ids...)
-}
-
-// ClearAssignee clears all "assignee" edges to the User entity.
+// ClearAssignee clears the "assignee" edge to the User entity.
 func (tu *TicketUpdate) ClearAssignee() *TicketUpdate {
 	tu.mutation.ClearAssignee()
 	return tu
-}
-
-// RemoveAssigneeIDs removes the "assignee" edge to User entities by IDs.
-func (tu *TicketUpdate) RemoveAssigneeIDs(ids ...int) *TicketUpdate {
-	tu.mutation.RemoveAssigneeIDs(ids...)
-	return tu
-}
-
-// RemoveAssignee removes "assignee" edges to User entities.
-func (tu *TicketUpdate) RemoveAssignee(u ...*User) *TicketUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return tu.RemoveAssigneeIDs(ids...)
 }
 
 // ClearParent clears the "parent" edge to the Ticket entity.
@@ -337,10 +315,10 @@ func (tu *TicketUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if tu.mutation.ReporterCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
+			Columns: []string{ticket.ReporterColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -348,34 +326,15 @@ func (tu *TicketUpdate) sqlSave(ctx context.Context) (n int, err error) {
 					Column: user.FieldID,
 				},
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tu.mutation.RemovedReporterIDs(); len(nodes) > 0 && !tu.mutation.ReporterCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: user.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := tu.mutation.ReporterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
+			Columns: []string{ticket.ReporterColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -391,10 +350,10 @@ func (tu *TicketUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if tu.mutation.AssigneeCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
+			Columns: []string{ticket.AssigneeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -402,34 +361,15 @@ func (tu *TicketUpdate) sqlSave(ctx context.Context) (n int, err error) {
 					Column: user.FieldID,
 				},
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tu.mutation.RemovedAssigneeIDs(); len(nodes) > 0 && !tu.mutation.AssigneeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: user.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := tu.mutation.AssigneeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
+			Columns: []string{ticket.AssigneeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -540,34 +480,42 @@ func (tuo *TicketUpdateOne) SetProject(p *Project) *TicketUpdateOne {
 	return tuo.SetProjectID(p.ID)
 }
 
-// AddReporterIDs adds the "reporter" edge to the User entity by IDs.
-func (tuo *TicketUpdateOne) AddReporterIDs(ids ...int) *TicketUpdateOne {
-	tuo.mutation.AddReporterIDs(ids...)
+// SetReporterID sets the "reporter" edge to the User entity by ID.
+func (tuo *TicketUpdateOne) SetReporterID(id int) *TicketUpdateOne {
+	tuo.mutation.SetReporterID(id)
 	return tuo
 }
 
-// AddReporter adds the "reporter" edges to the User entity.
-func (tuo *TicketUpdateOne) AddReporter(u ...*User) *TicketUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableReporterID sets the "reporter" edge to the User entity by ID if the given value is not nil.
+func (tuo *TicketUpdateOne) SetNillableReporterID(id *int) *TicketUpdateOne {
+	if id != nil {
+		tuo = tuo.SetReporterID(*id)
 	}
-	return tuo.AddReporterIDs(ids...)
-}
-
-// AddAssigneeIDs adds the "assignee" edge to the User entity by IDs.
-func (tuo *TicketUpdateOne) AddAssigneeIDs(ids ...int) *TicketUpdateOne {
-	tuo.mutation.AddAssigneeIDs(ids...)
 	return tuo
 }
 
-// AddAssignee adds the "assignee" edges to the User entity.
-func (tuo *TicketUpdateOne) AddAssignee(u ...*User) *TicketUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetReporter sets the "reporter" edge to the User entity.
+func (tuo *TicketUpdateOne) SetReporter(u *User) *TicketUpdateOne {
+	return tuo.SetReporterID(u.ID)
+}
+
+// SetAssigneeID sets the "assignee" edge to the User entity by ID.
+func (tuo *TicketUpdateOne) SetAssigneeID(id int) *TicketUpdateOne {
+	tuo.mutation.SetAssigneeID(id)
+	return tuo
+}
+
+// SetNillableAssigneeID sets the "assignee" edge to the User entity by ID if the given value is not nil.
+func (tuo *TicketUpdateOne) SetNillableAssigneeID(id *int) *TicketUpdateOne {
+	if id != nil {
+		tuo = tuo.SetAssigneeID(*id)
 	}
-	return tuo.AddAssigneeIDs(ids...)
+	return tuo
+}
+
+// SetAssignee sets the "assignee" edge to the User entity.
+func (tuo *TicketUpdateOne) SetAssignee(u *User) *TicketUpdateOne {
+	return tuo.SetAssigneeID(u.ID)
 }
 
 // SetParentID sets the "parent" edge to the Ticket entity by ID.
@@ -600,46 +548,16 @@ func (tuo *TicketUpdateOne) ClearProject() *TicketUpdateOne {
 	return tuo
 }
 
-// ClearReporter clears all "reporter" edges to the User entity.
+// ClearReporter clears the "reporter" edge to the User entity.
 func (tuo *TicketUpdateOne) ClearReporter() *TicketUpdateOne {
 	tuo.mutation.ClearReporter()
 	return tuo
 }
 
-// RemoveReporterIDs removes the "reporter" edge to User entities by IDs.
-func (tuo *TicketUpdateOne) RemoveReporterIDs(ids ...int) *TicketUpdateOne {
-	tuo.mutation.RemoveReporterIDs(ids...)
-	return tuo
-}
-
-// RemoveReporter removes "reporter" edges to User entities.
-func (tuo *TicketUpdateOne) RemoveReporter(u ...*User) *TicketUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return tuo.RemoveReporterIDs(ids...)
-}
-
-// ClearAssignee clears all "assignee" edges to the User entity.
+// ClearAssignee clears the "assignee" edge to the User entity.
 func (tuo *TicketUpdateOne) ClearAssignee() *TicketUpdateOne {
 	tuo.mutation.ClearAssignee()
 	return tuo
-}
-
-// RemoveAssigneeIDs removes the "assignee" edge to User entities by IDs.
-func (tuo *TicketUpdateOne) RemoveAssigneeIDs(ids ...int) *TicketUpdateOne {
-	tuo.mutation.RemoveAssigneeIDs(ids...)
-	return tuo
-}
-
-// RemoveAssignee removes "assignee" edges to User entities.
-func (tuo *TicketUpdateOne) RemoveAssignee(u ...*User) *TicketUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return tuo.RemoveAssigneeIDs(ids...)
 }
 
 // ClearParent clears the "parent" edge to the Ticket entity.
@@ -830,10 +748,10 @@ func (tuo *TicketUpdateOne) sqlSave(ctx context.Context) (_node *Ticket, err err
 	}
 	if tuo.mutation.ReporterCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
+			Columns: []string{ticket.ReporterColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -841,34 +759,15 @@ func (tuo *TicketUpdateOne) sqlSave(ctx context.Context) (_node *Ticket, err err
 					Column: user.FieldID,
 				},
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tuo.mutation.RemovedReporterIDs(); len(nodes) > 0 && !tuo.mutation.ReporterCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: user.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := tuo.mutation.ReporterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
+			Columns: []string{ticket.ReporterColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -884,10 +783,10 @@ func (tuo *TicketUpdateOne) sqlSave(ctx context.Context) (_node *Ticket, err err
 	}
 	if tuo.mutation.AssigneeCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
+			Columns: []string{ticket.AssigneeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -895,34 +794,15 @@ func (tuo *TicketUpdateOne) sqlSave(ctx context.Context) (_node *Ticket, err err
 					Column: user.FieldID,
 				},
 			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := tuo.mutation.RemovedAssigneeIDs(); len(nodes) > 0 && !tuo.mutation.AssigneeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: user.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := tuo.mutation.AssigneeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
+			Columns: []string{ticket.AssigneeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{

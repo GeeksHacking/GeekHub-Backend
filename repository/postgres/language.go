@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/geekshacking/geekhub-backend/ent"
 	entlanguage "github.com/geekshacking/geekhub-backend/ent/language"
+	entproject "github.com/geekshacking/geekhub-backend/ent/project"
 	"github.com/geekshacking/geekhub-backend/repository"
 )
 
@@ -17,6 +18,13 @@ func NewLanguage(client *ent.Client) repository.Language {
 
 func (l *language) FindByName(ctx context.Context, name string) (*ent.Language, error) {
 	return l.client.Language.Query().Where(entlanguage.Name(name)).Only(ctx)
+}
+
+func (l *language) FindByProjectID(ctx context.Context, projectID int) ([]*ent.Language, error) {
+	return l.client.Language.Query().WithProjects().Where(
+		entlanguage.HasProjectsWith(
+			entproject.ID(projectID),
+		)).All(ctx)
 }
 
 func (l *language) CreateBulk(ctx context.Context, models []*ent.Language) ([]*ent.Language, error) {

@@ -7,6 +7,7 @@ import (
 
 type LanguageReader interface {
 	FindByName(ctx context.Context, name string) (*ent.Language, error)
+	FindByProjectID(ctx context.Context, projectID int) ([]*ent.Language, error)
 }
 
 type LanguageWriter interface {

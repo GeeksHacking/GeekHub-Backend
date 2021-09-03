@@ -64,34 +64,42 @@ func (tc *TicketCreate) SetProject(p *Project) *TicketCreate {
 	return tc.SetProjectID(p.ID)
 }
 
-// AddReporterIDs adds the "reporter" edge to the User entity by IDs.
-func (tc *TicketCreate) AddReporterIDs(ids ...int) *TicketCreate {
-	tc.mutation.AddReporterIDs(ids...)
+// SetReporterID sets the "reporter" edge to the User entity by ID.
+func (tc *TicketCreate) SetReporterID(id int) *TicketCreate {
+	tc.mutation.SetReporterID(id)
 	return tc
 }
 
-// AddReporter adds the "reporter" edges to the User entity.
-func (tc *TicketCreate) AddReporter(u ...*User) *TicketCreate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetNillableReporterID sets the "reporter" edge to the User entity by ID if the given value is not nil.
+func (tc *TicketCreate) SetNillableReporterID(id *int) *TicketCreate {
+	if id != nil {
+		tc = tc.SetReporterID(*id)
 	}
-	return tc.AddReporterIDs(ids...)
-}
-
-// AddAssigneeIDs adds the "assignee" edge to the User entity by IDs.
-func (tc *TicketCreate) AddAssigneeIDs(ids ...int) *TicketCreate {
-	tc.mutation.AddAssigneeIDs(ids...)
 	return tc
 }
 
-// AddAssignee adds the "assignee" edges to the User entity.
-func (tc *TicketCreate) AddAssignee(u ...*User) *TicketCreate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
+// SetReporter sets the "reporter" edge to the User entity.
+func (tc *TicketCreate) SetReporter(u *User) *TicketCreate {
+	return tc.SetReporterID(u.ID)
+}
+
+// SetAssigneeID sets the "assignee" edge to the User entity by ID.
+func (tc *TicketCreate) SetAssigneeID(id int) *TicketCreate {
+	tc.mutation.SetAssigneeID(id)
+	return tc
+}
+
+// SetNillableAssigneeID sets the "assignee" edge to the User entity by ID if the given value is not nil.
+func (tc *TicketCreate) SetNillableAssigneeID(id *int) *TicketCreate {
+	if id != nil {
+		tc = tc.SetAssigneeID(*id)
 	}
-	return tc.AddAssigneeIDs(ids...)
+	return tc
+}
+
+// SetAssignee sets the "assignee" edge to the User entity.
+func (tc *TicketCreate) SetAssignee(u *User) *TicketCreate {
+	return tc.SetAssigneeID(u.ID)
 }
 
 // SetParentID sets the "parent" edge to the Ticket entity by ID.
@@ -286,10 +294,10 @@ func (tc *TicketCreate) createSpec() (*Ticket, *sqlgraph.CreateSpec) {
 	}
 	if nodes := tc.mutation.ReporterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.ReporterTable,
-			Columns: ticket.ReporterPrimaryKey,
+			Columns: []string{ticket.ReporterColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -301,14 +309,15 @@ func (tc *TicketCreate) createSpec() (*Ticket, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.user_reported_tickets = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := tc.mutation.AssigneeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.M2O,
 			Inverse: true,
 			Table:   ticket.AssigneeTable,
-			Columns: ticket.AssigneePrimaryKey,
+			Columns: []string{ticket.AssigneeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -320,6 +329,7 @@ func (tc *TicketCreate) createSpec() (*Ticket, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.user_assigned_tickets = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := tc.mutation.ParentIDs(); len(nodes) > 0 {

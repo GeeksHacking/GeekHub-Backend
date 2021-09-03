@@ -42,7 +42,7 @@ type project struct {
 	httpClient         http.Client
 }
 
-func NewProject(config config.Config, repository repository.Project, languageRepository repository.Language, userRepository repository.User) *project {
+func NewProject(config config.Config, repository repository.Project, languageRepository repository.Language, userRepository repository.User) Project {
 	httpClient := http.Client{}
 	return &project{config, repository, languageRepository, userRepository, httpClient}
 }

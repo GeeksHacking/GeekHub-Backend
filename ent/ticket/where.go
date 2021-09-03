@@ -457,7 +457,7 @@ func HasReporter() predicate.Ticket {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(ReporterTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ReporterTable, ReporterPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ReporterTable, ReporterColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -469,7 +469,7 @@ func HasReporterWith(preds ...predicate.User) predicate.Ticket {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(ReporterInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ReporterTable, ReporterPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ReporterTable, ReporterColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
@@ -485,7 +485,7 @@ func HasAssignee() predicate.Ticket {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AssigneeTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, AssigneeTable, AssigneePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, AssigneeTable, AssigneeColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -497,7 +497,7 @@ func HasAssigneeWith(preds ...predicate.User) predicate.Ticket {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AssigneeInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, AssigneeTable, AssigneePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, AssigneeTable, AssigneeColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

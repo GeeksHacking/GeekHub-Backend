@@ -1617,11 +1617,9 @@ type TicketMutation struct {
 	clearedFields   map[string]struct{}
 	project         *int
 	clearedproject  bool
-	reporter        map[int]struct{}
-	removedreporter map[int]struct{}
+	reporter        *int
 	clearedreporter bool
-	assignee        map[int]struct{}
-	removedassignee map[int]struct{}
+	assignee        *int
 	clearedassignee bool
 	parent          *int
 	clearedparent   bool
@@ -1892,14 +1890,9 @@ func (m *TicketMutation) ResetProject() {
 	m.clearedproject = false
 }
 
-// AddReporterIDs adds the "reporter" edge to the User entity by ids.
-func (m *TicketMutation) AddReporterIDs(ids ...int) {
-	if m.reporter == nil {
-		m.reporter = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.reporter[ids[i]] = struct{}{}
-	}
+// SetReporterID sets the "reporter" edge to the User entity by id.
+func (m *TicketMutation) SetReporterID(id int) {
+	m.reporter = &id
 }
 
 // ClearReporter clears the "reporter" edge to the User entity.
@@ -1912,29 +1905,20 @@ func (m *TicketMutation) ReporterCleared() bool {
 	return m.clearedreporter
 }
 
-// RemoveReporterIDs removes the "reporter" edge to the User entity by IDs.
-func (m *TicketMutation) RemoveReporterIDs(ids ...int) {
-	if m.removedreporter == nil {
-		m.removedreporter = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.reporter, ids[i])
-		m.removedreporter[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedReporter returns the removed IDs of the "reporter" edge to the User entity.
-func (m *TicketMutation) RemovedReporterIDs() (ids []int) {
-	for id := range m.removedreporter {
-		ids = append(ids, id)
+// ReporterID returns the "reporter" edge ID in the mutation.
+func (m *TicketMutation) ReporterID() (id int, exists bool) {
+	if m.reporter != nil {
+		return *m.reporter, true
 	}
 	return
 }
 
 // ReporterIDs returns the "reporter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ReporterID instead. It exists only for internal usage by the builders.
 func (m *TicketMutation) ReporterIDs() (ids []int) {
-	for id := range m.reporter {
-		ids = append(ids, id)
+	if id := m.reporter; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -1943,17 +1927,11 @@ func (m *TicketMutation) ReporterIDs() (ids []int) {
 func (m *TicketMutation) ResetReporter() {
 	m.reporter = nil
 	m.clearedreporter = false
-	m.removedreporter = nil
 }
 
-// AddAssigneeIDs adds the "assignee" edge to the User entity by ids.
-func (m *TicketMutation) AddAssigneeIDs(ids ...int) {
-	if m.assignee == nil {
-		m.assignee = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.assignee[ids[i]] = struct{}{}
-	}
+// SetAssigneeID sets the "assignee" edge to the User entity by id.
+func (m *TicketMutation) SetAssigneeID(id int) {
+	m.assignee = &id
 }
 
 // ClearAssignee clears the "assignee" edge to the User entity.
@@ -1966,29 +1944,20 @@ func (m *TicketMutation) AssigneeCleared() bool {
 	return m.clearedassignee
 }
 
-// RemoveAssigneeIDs removes the "assignee" edge to the User entity by IDs.
-func (m *TicketMutation) RemoveAssigneeIDs(ids ...int) {
-	if m.removedassignee == nil {
-		m.removedassignee = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.assignee, ids[i])
-		m.removedassignee[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedAssignee returns the removed IDs of the "assignee" edge to the User entity.
-func (m *TicketMutation) RemovedAssigneeIDs() (ids []int) {
-	for id := range m.removedassignee {
-		ids = append(ids, id)
+// AssigneeID returns the "assignee" edge ID in the mutation.
+func (m *TicketMutation) AssigneeID() (id int, exists bool) {
+	if m.assignee != nil {
+		return *m.assignee, true
 	}
 	return
 }
 
 // AssigneeIDs returns the "assignee" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AssigneeID instead. It exists only for internal usage by the builders.
 func (m *TicketMutation) AssigneeIDs() (ids []int) {
-	for id := range m.assignee {
-		ids = append(ids, id)
+	if id := m.assignee; id != nil {
+		ids = append(ids, *id)
 	}
 	return
 }
@@ -1997,7 +1966,6 @@ func (m *TicketMutation) AssigneeIDs() (ids []int) {
 func (m *TicketMutation) ResetAssignee() {
 	m.assignee = nil
 	m.clearedassignee = false
-	m.removedassignee = nil
 }
 
 // SetParentID sets the "parent" edge to the Ticket entity by id.
@@ -2233,17 +2201,13 @@ func (m *TicketMutation) AddedIDs(name string) []ent.Value {
 			return []ent.Value{*id}
 		}
 	case ticket.EdgeReporter:
-		ids := make([]ent.Value, 0, len(m.reporter))
-		for id := range m.reporter {
-			ids = append(ids, id)
+		if id := m.reporter; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case ticket.EdgeAssignee:
-		ids := make([]ent.Value, 0, len(m.assignee))
-		for id := range m.assignee {
-			ids = append(ids, id)
+		if id := m.assignee; id != nil {
+			return []ent.Value{*id}
 		}
-		return ids
 	case ticket.EdgeParent:
 		if id := m.parent; id != nil {
 			return []ent.Value{*id}
@@ -2255,12 +2219,6 @@ func (m *TicketMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TicketMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 4)
-	if m.removedreporter != nil {
-		edges = append(edges, ticket.EdgeReporter)
-	}
-	if m.removedassignee != nil {
-		edges = append(edges, ticket.EdgeAssignee)
-	}
 	return edges
 }
 
@@ -2268,18 +2226,6 @@ func (m *TicketMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *TicketMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case ticket.EdgeReporter:
-		ids := make([]ent.Value, 0, len(m.removedreporter))
-		for id := range m.removedreporter {
-			ids = append(ids, id)
-		}
-		return ids
-	case ticket.EdgeAssignee:
-		ids := make([]ent.Value, 0, len(m.removedassignee))
-		for id := range m.removedassignee {
-			ids = append(ids, id)
-		}
-		return ids
 	}
 	return nil
 }
@@ -2324,6 +2270,12 @@ func (m *TicketMutation) ClearEdge(name string) error {
 	switch name {
 	case ticket.EdgeProject:
 		m.ClearProject()
+		return nil
+	case ticket.EdgeReporter:
+		m.ClearReporter()
+		return nil
+	case ticket.EdgeAssignee:
+		m.ClearAssignee()
 		return nil
 	case ticket.EdgeParent:
 		m.ClearParent()

@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/geekshacking/geekhub-backend/ent/project"
 	"github.com/geekshacking/geekhub-backend/ent/ticket"
+	"github.com/geekshacking/geekhub-backend/ent/user"
 )
 
 // Ticket is the model entity for the Ticket schema.
@@ -26,9 +27,11 @@ type Ticket struct {
 	Status ticket.Status `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TicketQuery when eager-loading is set.
-	Edges           TicketEdges `json:"edges"`
-	project_tickets *int
-	ticket_parent   *int
+	Edges                 TicketEdges `json:"edges"`
+	project_tickets       *int
+	ticket_parent         *int
+	user_reported_tickets *int
+	user_assigned_tickets *int
 }
 
 // TicketEdges holds the relations/edges for other nodes in the graph.
@@ -36,9 +39,9 @@ type TicketEdges struct {
 	// Project holds the value of the project edge.
 	Project *Project `json:"project,omitempty"`
 	// Reporter holds the value of the reporter edge.
-	Reporter []*User `json:"reporter,omitempty"`
+	Reporter *User `json:"reporter,omitempty"`
 	// Assignee holds the value of the assignee edge.
-	Assignee []*User `json:"assignee,omitempty"`
+	Assignee *User `json:"assignee,omitempty"`
 	// Parent holds the value of the parent edge.
 	Parent *Ticket `json:"parent,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -61,18 +64,28 @@ func (e TicketEdges) ProjectOrErr() (*Project, error) {
 }
 
 // ReporterOrErr returns the Reporter value or an error if the edge
-// was not loaded in eager-loading.
-func (e TicketEdges) ReporterOrErr() ([]*User, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TicketEdges) ReporterOrErr() (*User, error) {
 	if e.loadedTypes[1] {
+		if e.Reporter == nil {
+			// The edge reporter was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
 		return e.Reporter, nil
 	}
 	return nil, &NotLoadedError{edge: "reporter"}
 }
 
 // AssigneeOrErr returns the Assignee value or an error if the edge
-// was not loaded in eager-loading.
-func (e TicketEdges) AssigneeOrErr() ([]*User, error) {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TicketEdges) AssigneeOrErr() (*User, error) {
 	if e.loadedTypes[2] {
+		if e.Assignee == nil {
+			// The edge assignee was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: user.Label}
+		}
 		return e.Assignee, nil
 	}
 	return nil, &NotLoadedError{edge: "assignee"}
@@ -104,6 +117,10 @@ func (*Ticket) scanValues(columns []string) ([]interface{}, error) {
 		case ticket.ForeignKeys[0]: // project_tickets
 			values[i] = new(sql.NullInt64)
 		case ticket.ForeignKeys[1]: // ticket_parent
+			values[i] = new(sql.NullInt64)
+		case ticket.ForeignKeys[2]: // user_reported_tickets
+			values[i] = new(sql.NullInt64)
+		case ticket.ForeignKeys[3]: // user_assigned_tickets
 			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Ticket", columns[i])
@@ -163,6 +180,20 @@ func (t *Ticket) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				t.ticket_parent = new(int)
 				*t.ticket_parent = int(value.Int64)
+			}
+		case ticket.ForeignKeys[2]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_reported_tickets", value)
+			} else if value.Valid {
+				t.user_reported_tickets = new(int)
+				*t.user_reported_tickets = int(value.Int64)
+			}
+		case ticket.ForeignKeys[3]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_assigned_tickets", value)
+			} else if value.Valid {
+				t.user_assigned_tickets = new(int)
+				*t.user_assigned_tickets = int(value.Int64)
 			}
 		}
 	}

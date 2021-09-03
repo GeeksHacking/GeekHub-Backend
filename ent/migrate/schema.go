@@ -61,6 +61,8 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"backlog", "development", "qa", "release"}},
 		{Name: "project_tickets", Type: field.TypeInt, Nullable: true},
 		{Name: "ticket_parent", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "user_reported_tickets", Type: field.TypeInt, Nullable: true},
+		{Name: "user_assigned_tickets", Type: field.TypeInt, Nullable: true},
 	}
 	// TicketsTable holds the schema information for the "tickets" table.
 	TicketsTable = &schema.Table{
@@ -78,6 +80,18 @@ var (
 				Symbol:     "tickets_tickets_parent",
 				Columns:    []*schema.Column{TicketsColumns[6]},
 				RefColumns: []*schema.Column{TicketsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "tickets_users_reported_tickets",
+				Columns:    []*schema.Column{TicketsColumns[7]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "tickets_users_assigned_tickets",
+				Columns:    []*schema.Column{TicketsColumns[8]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -169,56 +183,6 @@ var (
 			},
 		},
 	}
-	// UserReportedTicketsColumns holds the columns for the "user_reported_tickets" table.
-	UserReportedTicketsColumns = []*schema.Column{
-		{Name: "user_id", Type: field.TypeInt},
-		{Name: "ticket_id", Type: field.TypeInt},
-	}
-	// UserReportedTicketsTable holds the schema information for the "user_reported_tickets" table.
-	UserReportedTicketsTable = &schema.Table{
-		Name:       "user_reported_tickets",
-		Columns:    UserReportedTicketsColumns,
-		PrimaryKey: []*schema.Column{UserReportedTicketsColumns[0], UserReportedTicketsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "user_reported_tickets_user_id",
-				Columns:    []*schema.Column{UserReportedTicketsColumns[0]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "user_reported_tickets_ticket_id",
-				Columns:    []*schema.Column{UserReportedTicketsColumns[1]},
-				RefColumns: []*schema.Column{TicketsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// UserAssignedTicketsColumns holds the columns for the "user_assigned_tickets" table.
-	UserAssignedTicketsColumns = []*schema.Column{
-		{Name: "user_id", Type: field.TypeInt},
-		{Name: "ticket_id", Type: field.TypeInt},
-	}
-	// UserAssignedTicketsTable holds the schema information for the "user_assigned_tickets" table.
-	UserAssignedTicketsTable = &schema.Table{
-		Name:       "user_assigned_tickets",
-		Columns:    UserAssignedTicketsColumns,
-		PrimaryKey: []*schema.Column{UserAssignedTicketsColumns[0], UserAssignedTicketsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "user_assigned_tickets_user_id",
-				Columns:    []*schema.Column{UserAssignedTicketsColumns[0]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "user_assigned_tickets_ticket_id",
-				Columns:    []*schema.Column{UserAssignedTicketsColumns[1]},
-				RefColumns: []*schema.Column{TicketsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		LanguagesTable,
@@ -229,8 +193,6 @@ var (
 		ProjectTagsTable,
 		ProjectLanguagesTable,
 		UserProjectsTable,
-		UserReportedTicketsTable,
-		UserAssignedTicketsTable,
 	}
 )
 
@@ -238,14 +200,12 @@ func init() {
 	ProjectsTable.ForeignKeys[0].RefTable = UsersTable
 	TicketsTable.ForeignKeys[0].RefTable = ProjectsTable
 	TicketsTable.ForeignKeys[1].RefTable = TicketsTable
+	TicketsTable.ForeignKeys[2].RefTable = UsersTable
+	TicketsTable.ForeignKeys[3].RefTable = UsersTable
 	ProjectTagsTable.ForeignKeys[0].RefTable = ProjectsTable
 	ProjectTagsTable.ForeignKeys[1].RefTable = TagsTable
 	ProjectLanguagesTable.ForeignKeys[0].RefTable = ProjectsTable
 	ProjectLanguagesTable.ForeignKeys[1].RefTable = LanguagesTable
 	UserProjectsTable.ForeignKeys[0].RefTable = UsersTable
 	UserProjectsTable.ForeignKeys[1].RefTable = ProjectsTable
-	UserReportedTicketsTable.ForeignKeys[0].RefTable = UsersTable
-	UserReportedTicketsTable.ForeignKeys[1].RefTable = TicketsTable
-	UserAssignedTicketsTable.ForeignKeys[0].RefTable = UsersTable
-	UserAssignedTicketsTable.ForeignKeys[1].RefTable = TicketsTable
 }

@@ -24,16 +24,20 @@ const (
 	// ProjectsInverseTable is the table name for the Project entity.
 	// It exists in this package in order to avoid circular dependency with the "project" package.
 	ProjectsInverseTable = "projects"
-	// ReportedTicketsTable is the table that holds the reported_tickets relation/edge. The primary key declared below.
-	ReportedTicketsTable = "user_reported_tickets"
+	// ReportedTicketsTable is the table that holds the reported_tickets relation/edge.
+	ReportedTicketsTable = "tickets"
 	// ReportedTicketsInverseTable is the table name for the Ticket entity.
 	// It exists in this package in order to avoid circular dependency with the "ticket" package.
 	ReportedTicketsInverseTable = "tickets"
-	// AssignedTicketsTable is the table that holds the assigned_tickets relation/edge. The primary key declared below.
-	AssignedTicketsTable = "user_assigned_tickets"
+	// ReportedTicketsColumn is the table column denoting the reported_tickets relation/edge.
+	ReportedTicketsColumn = "user_reported_tickets"
+	// AssignedTicketsTable is the table that holds the assigned_tickets relation/edge.
+	AssignedTicketsTable = "tickets"
 	// AssignedTicketsInverseTable is the table name for the Ticket entity.
 	// It exists in this package in order to avoid circular dependency with the "ticket" package.
 	AssignedTicketsInverseTable = "tickets"
+	// AssignedTicketsColumn is the table column denoting the assigned_tickets relation/edge.
+	AssignedTicketsColumn = "user_assigned_tickets"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -47,12 +51,6 @@ var (
 	// ProjectsPrimaryKey and ProjectsColumn2 are the table columns denoting the
 	// primary key for the projects relation (M2M).
 	ProjectsPrimaryKey = []string{"user_id", "project_id"}
-	// ReportedTicketsPrimaryKey and ReportedTicketsColumn2 are the table columns denoting the
-	// primary key for the reported_tickets relation (M2M).
-	ReportedTicketsPrimaryKey = []string{"user_id", "ticket_id"}
-	// AssignedTicketsPrimaryKey and AssignedTicketsColumn2 are the table columns denoting the
-	// primary key for the assigned_tickets relation (M2M).
-	AssignedTicketsPrimaryKey = []string{"user_id", "ticket_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).

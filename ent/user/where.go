@@ -361,7 +361,7 @@ func HasReportedTickets() predicate.User {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(ReportedTicketsTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, ReportedTicketsTable, ReportedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportedTicketsTable, ReportedTicketsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -373,7 +373,7 @@ func HasReportedTicketsWith(preds ...predicate.Ticket) predicate.User {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(ReportedTicketsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, ReportedTicketsTable, ReportedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, ReportedTicketsTable, ReportedTicketsColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
@@ -389,7 +389,7 @@ func HasAssignedTickets() predicate.User {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AssignedTicketsTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, AssignedTicketsTable, AssignedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, AssignedTicketsTable, AssignedTicketsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -401,7 +401,7 @@ func HasAssignedTicketsWith(preds ...predicate.Ticket) predicate.User {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AssignedTicketsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, AssignedTicketsTable, AssignedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, AssignedTicketsTable, AssignedTicketsColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

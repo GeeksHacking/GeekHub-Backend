@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -105,7 +104,7 @@ func (tq *TicketQuery) QueryReporter() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ticket.ReporterTable, ticket.ReporterPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.ReporterTable, ticket.ReporterColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -127,7 +126,7 @@ func (tq *TicketQuery) QueryAssignee() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ticket.AssigneeTable, ticket.AssigneePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.AssigneeTable, ticket.AssigneeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -465,7 +464,7 @@ func (tq *TicketQuery) sqlAll(ctx context.Context) ([]*Ticket, error) {
 			tq.withParent != nil,
 		}
 	)
-	if tq.withProject != nil || tq.withParent != nil {
+	if tq.withProject != nil || tq.withReporter != nil || tq.withAssignee != nil || tq.withParent != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -521,131 +520,59 @@ func (tq *TicketQuery) sqlAll(ctx context.Context) ([]*Ticket, error) {
 	}
 
 	if query := tq.withReporter; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		ids := make(map[int]*Ticket, len(nodes))
-		for _, node := range nodes {
-			ids[node.ID] = node
-			fks = append(fks, node.ID)
-			node.Edges.Reporter = []*User{}
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Ticket)
+		for i := range nodes {
+			if nodes[i].user_reported_tickets == nil {
+				continue
+			}
+			fk := *nodes[i].user_reported_tickets
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
 		}
-		var (
-			edgeids []int
-			edges   = make(map[int][]*Ticket)
-		)
-		_spec := &sqlgraph.EdgeQuerySpec{
-			Edge: &sqlgraph.EdgeSpec{
-				Inverse: true,
-				Table:   ticket.ReporterTable,
-				Columns: ticket.ReporterPrimaryKey,
-			},
-			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(ticket.ReporterPrimaryKey[1], fks...))
-			},
-			ScanValues: func() [2]interface{} {
-				return [2]interface{}{new(sql.NullInt64), new(sql.NullInt64)}
-			},
-			Assign: func(out, in interface{}) error {
-				eout, ok := out.(*sql.NullInt64)
-				if !ok || eout == nil {
-					return fmt.Errorf("unexpected id value for edge-out")
-				}
-				ein, ok := in.(*sql.NullInt64)
-				if !ok || ein == nil {
-					return fmt.Errorf("unexpected id value for edge-in")
-				}
-				outValue := int(eout.Int64)
-				inValue := int(ein.Int64)
-				node, ok := ids[outValue]
-				if !ok {
-					return fmt.Errorf("unexpected node id in edges: %v", outValue)
-				}
-				if _, ok := edges[inValue]; !ok {
-					edgeids = append(edgeids, inValue)
-				}
-				edges[inValue] = append(edges[inValue], node)
-				return nil
-			},
-		}
-		if err := sqlgraph.QueryEdges(ctx, tq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "reporter": %w`, err)
-		}
-		query.Where(user.IDIn(edgeids...))
+		query.Where(user.IDIn(ids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			nodes, ok := edges[n.ID]
+			nodes, ok := nodeids[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected "reporter" node returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "user_reported_tickets" returned %v`, n.ID)
 			}
 			for i := range nodes {
-				nodes[i].Edges.Reporter = append(nodes[i].Edges.Reporter, n)
+				nodes[i].Edges.Reporter = n
 			}
 		}
 	}
 
 	if query := tq.withAssignee; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		ids := make(map[int]*Ticket, len(nodes))
-		for _, node := range nodes {
-			ids[node.ID] = node
-			fks = append(fks, node.ID)
-			node.Edges.Assignee = []*User{}
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Ticket)
+		for i := range nodes {
+			if nodes[i].user_assigned_tickets == nil {
+				continue
+			}
+			fk := *nodes[i].user_assigned_tickets
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
 		}
-		var (
-			edgeids []int
-			edges   = make(map[int][]*Ticket)
-		)
-		_spec := &sqlgraph.EdgeQuerySpec{
-			Edge: &sqlgraph.EdgeSpec{
-				Inverse: true,
-				Table:   ticket.AssigneeTable,
-				Columns: ticket.AssigneePrimaryKey,
-			},
-			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(ticket.AssigneePrimaryKey[1], fks...))
-			},
-			ScanValues: func() [2]interface{} {
-				return [2]interface{}{new(sql.NullInt64), new(sql.NullInt64)}
-			},
-			Assign: func(out, in interface{}) error {
-				eout, ok := out.(*sql.NullInt64)
-				if !ok || eout == nil {
-					return fmt.Errorf("unexpected id value for edge-out")
-				}
-				ein, ok := in.(*sql.NullInt64)
-				if !ok || ein == nil {
-					return fmt.Errorf("unexpected id value for edge-in")
-				}
-				outValue := int(eout.Int64)
-				inValue := int(ein.Int64)
-				node, ok := ids[outValue]
-				if !ok {
-					return fmt.Errorf("unexpected node id in edges: %v", outValue)
-				}
-				if _, ok := edges[inValue]; !ok {
-					edgeids = append(edgeids, inValue)
-				}
-				edges[inValue] = append(edges[inValue], node)
-				return nil
-			},
-		}
-		if err := sqlgraph.QueryEdges(ctx, tq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "assignee": %w`, err)
-		}
-		query.Where(user.IDIn(edgeids...))
+		query.Where(user.IDIn(ids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			nodes, ok := edges[n.ID]
+			nodes, ok := nodeids[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected "assignee" node returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "user_assigned_tickets" returned %v`, n.ID)
 			}
 			for i := range nodes {
-				nodes[i].Edges.Assignee = append(nodes[i].Edges.Assignee, n)
+				nodes[i].Edges.Assignee = n
 			}
 		}
 	}

@@ -641,7 +641,7 @@ func (c *TicketClient) QueryReporter(t *Ticket) *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ticket.ReporterTable, ticket.ReporterPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.ReporterTable, ticket.ReporterColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
@@ -657,7 +657,7 @@ func (c *TicketClient) QueryAssignee(t *Ticket) *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ticket.AssigneeTable, ticket.AssigneePrimaryKey...),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.AssigneeTable, ticket.AssigneeColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil
@@ -795,7 +795,7 @@ func (c *UserClient) QueryReportedTickets(u *User) *TicketQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(ticket.Table, ticket.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.ReportedTicketsTable, user.ReportedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ReportedTicketsTable, user.ReportedTicketsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -811,7 +811,7 @@ func (c *UserClient) QueryAssignedTickets(u *User) *TicketQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(ticket.Table, ticket.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.AssignedTicketsTable, user.AssignedTicketsPrimaryKey...),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.AssignedTicketsTable, user.AssignedTicketsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
