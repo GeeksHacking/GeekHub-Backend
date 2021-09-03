@@ -1,4 +1,7 @@
 DriverName = "postgres"
 DataSourceName = "host=localhost port=5432 user=postgres dbname=geekhub password=postgres sslmode=disable"
-ApplicationUrl = "http://localhost:5000"
+ApplicationUrl = "localhost:5000"
 Environment = "Development"
+Audience = "https://geekhub-api.geekshacking.com"
+Domain = "https://geekhub.jp.auth0.com/"
+JWKsURL = "https://geekhub.jp.auth0.com/.well-known/jwks.json"
