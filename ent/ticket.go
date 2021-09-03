@@ -29,7 +29,7 @@ type Ticket struct {
 	// The values are being populated by the TicketQuery when eager-loading is set.
 	Edges                 TicketEdges `json:"edges"`
 	project_tickets       *int
-	ticket_parent         *int
+	ticket_children       *int
 	user_reported_tickets *int
 	user_assigned_tickets *int
 }
@@ -44,9 +44,11 @@ type TicketEdges struct {
 	Assignee *User `json:"assignee,omitempty"`
 	// Parent holds the value of the parent edge.
 	Parent *Ticket `json:"parent,omitempty"`
+	// Children holds the value of the children edge.
+	Children []*Ticket `json:"children,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // ProjectOrErr returns the Project value or an error if the edge
@@ -105,6 +107,15 @@ func (e TicketEdges) ParentOrErr() (*Ticket, error) {
 	return nil, &NotLoadedError{edge: "parent"}
 }
 
+// ChildrenOrErr returns the Children value or an error if the edge
+// was not loaded in eager-loading.
+func (e TicketEdges) ChildrenOrErr() ([]*Ticket, error) {
+	if e.loadedTypes[4] {
+		return e.Children, nil
+	}
+	return nil, &NotLoadedError{edge: "children"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Ticket) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
@@ -116,7 +127,7 @@ func (*Ticket) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullString)
 		case ticket.ForeignKeys[0]: // project_tickets
 			values[i] = new(sql.NullInt64)
-		case ticket.ForeignKeys[1]: // ticket_parent
+		case ticket.ForeignKeys[1]: // ticket_children
 			values[i] = new(sql.NullInt64)
 		case ticket.ForeignKeys[2]: // user_reported_tickets
 			values[i] = new(sql.NullInt64)
@@ -176,10 +187,10 @@ func (t *Ticket) assignValues(columns []string, values []interface{}) error {
 			}
 		case ticket.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field ticket_parent", value)
+				return fmt.Errorf("unexpected type %T for edge-field ticket_children", value)
 			} else if value.Valid {
-				t.ticket_parent = new(int)
-				*t.ticket_parent = int(value.Int64)
+				t.ticket_children = new(int)
+				*t.ticket_children = int(value.Int64)
 			}
 		case ticket.ForeignKeys[2]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -218,6 +229,11 @@ func (t *Ticket) QueryAssignee() *UserQuery {
 // QueryParent queries the "parent" edge of the Ticket entity.
 func (t *Ticket) QueryParent() *TicketQuery {
 	return (&TicketClient{config: t.config}).QueryParent(t)
+}
+
+// QueryChildren queries the "children" edge of the Ticket entity.
+func (t *Ticket) QueryChildren() *TicketQuery {
+	return (&TicketClient{config: t.config}).QueryChildren(t)
 }
 
 // Update returns a builder for updating this Ticket.

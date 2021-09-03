@@ -64,8 +64,7 @@ func (p *project) Create(
 ) (*ent.Project, error) {
 	user, err := p.userRepository.FindByAuth0ID(ctx, ownerID)
 
-	var notFoundError *ent.NotFoundError
-	if errors.As(err, &notFoundError) {
+	if ent.IsNotFound(err) {
 		name, err := p.getUserDisplayName(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not get user details: %w", err)
@@ -103,9 +102,8 @@ func (p *project) Create(
 	var existingLanguages []*ent.Language
 	for _, name := range languages {
 		// Language does not exist
-		var notFoundError *ent.NotFoundError
 		language, err := p.languageRepository.FindByName(ctx, name)
-		if errors.As(err, &notFoundError) {
+		if ent.IsNotFound(err) {
 			newLanguages = append(newLanguages, &ent.Language{
 				Name: name,
 				Edges: ent.LanguageEdges{

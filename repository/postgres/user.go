@@ -16,7 +16,12 @@ func NewUser(client *ent.Client) repository.User {
 }
 
 func (u *user) FindByAuth0ID(ctx context.Context, ID string) (result *ent.User, err error) {
-	result, err = u.client.User.Query().Where(entuser.Auth0ID(ID)).Only(ctx)
+	result, err = u.client.User.Query().
+		Where(entuser.Auth0ID(ID)).
+		WithProjects().
+		WithAssignedTickets().
+		WithReportedTickets().
+		Only(ctx)
 	return
 }
 

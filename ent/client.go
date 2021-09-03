@@ -673,7 +673,23 @@ func (c *TicketClient) QueryParent(t *Ticket) *TicketQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, id),
 			sqlgraph.To(ticket.Table, ticket.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ticket.ParentTable, ticket.ParentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.ParentTable, ticket.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a Ticket.
+func (c *TicketClient) QueryChildren(t *Ticket) *TicketQuery {
+	query := &TicketQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ticket.Table, ticket.FieldID, id),
+			sqlgraph.To(ticket.Table, ticket.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ticket.ChildrenTable, ticket.ChildrenColumn),
 		)
 		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
 		return fromV, nil

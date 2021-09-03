@@ -42,8 +42,7 @@ func (p *project) Find(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := p.usecase.Find(r.Context(), ID)
-	var notFoundError *ent.NotFoundError
-	if errors.As(err, &notFoundError) {
+	if ent.IsNotFound(err) {
 		render.DefaultResponder(w, r, render.M{"error": "could not find project"})
 		return
 	}
@@ -140,8 +139,7 @@ func (p *project) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	project, err := p.usecase.Find(r.Context(), projectID)
-	var notFoundError *ent.NotFoundError
-	if errors.As(err, &notFoundError) {
+	if ent.IsNotFound(err) {
 		render.DefaultResponder(w, r, render.M{"error": "could not find project"})
 		return
 	}

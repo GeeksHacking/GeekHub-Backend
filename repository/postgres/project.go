@@ -17,7 +17,13 @@ func NewProject(client *ent.Client) repository.Project {
 }
 
 func (p *project) Find(ctx context.Context, ID int) (*ent.Project, error) {
-	result, err := p.client.Project.Query().Where(entproject.ID(ID)).Only(ctx)
+	result, err := p.client.Project.Query().
+		Where(entproject.ID(ID)).
+		WithTags().
+		WithOwner().
+		WithUsers().
+		WithLanguages().
+		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +32,9 @@ func (p *project) Find(ctx context.Context, ID int) (*ent.Project, error) {
 }
 
 func (p *project) FindByUserAuth0ID(ctx context.Context, userID string) ([]*ent.Project, error) {
-	result, err := p.client.User.Query().Where(entuser.Auth0ID(userID)).QueryProjects().All(ctx)
+	result, err := p.client.Project.Query().
+		Where(entproject.HasUsersWith(entuser.Auth0ID(userID))).
+		All(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -31,6 +32,7 @@ type TicketQuery struct {
 	withReporter *UserQuery
 	withAssignee *UserQuery
 	withParent   *TicketQuery
+	withChildren *TicketQuery
 	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -148,7 +150,29 @@ func (tq *TicketQuery) QueryParent() *TicketQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ticket.Table, ticket.FieldID, selector),
 			sqlgraph.To(ticket.Table, ticket.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ticket.ParentTable, ticket.ParentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, ticket.ParentTable, ticket.ParentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChildren chains the current query on the "children" edge.
+func (tq *TicketQuery) QueryChildren() *TicketQuery {
+	query := &TicketQuery{config: tq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := tq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := tq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ticket.Table, ticket.FieldID, selector),
+			sqlgraph.To(ticket.Table, ticket.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ticket.ChildrenTable, ticket.ChildrenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(tq.driver.Dialect(), step)
 		return fromU, nil
@@ -341,6 +365,7 @@ func (tq *TicketQuery) Clone() *TicketQuery {
 		withReporter: tq.withReporter.Clone(),
 		withAssignee: tq.withAssignee.Clone(),
 		withParent:   tq.withParent.Clone(),
+		withChildren: tq.withChildren.Clone(),
 		// clone intermediate query.
 		sql:  tq.sql.Clone(),
 		path: tq.path,
@@ -388,6 +413,17 @@ func (tq *TicketQuery) WithParent(opts ...func(*TicketQuery)) *TicketQuery {
 		opt(query)
 	}
 	tq.withParent = query
+	return tq
+}
+
+// WithChildren tells the query-builder to eager-load the nodes that are connected to
+// the "children" edge. The optional arguments are used to configure the query builder of the edge.
+func (tq *TicketQuery) WithChildren(opts ...func(*TicketQuery)) *TicketQuery {
+	query := &TicketQuery{config: tq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	tq.withChildren = query
 	return tq
 }
 
@@ -457,11 +493,12 @@ func (tq *TicketQuery) sqlAll(ctx context.Context) ([]*Ticket, error) {
 		nodes       = []*Ticket{}
 		withFKs     = tq.withFKs
 		_spec       = tq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			tq.withProject != nil,
 			tq.withReporter != nil,
 			tq.withAssignee != nil,
 			tq.withParent != nil,
+			tq.withChildren != nil,
 		}
 	)
 	if tq.withProject != nil || tq.withReporter != nil || tq.withAssignee != nil || tq.withParent != nil {
@@ -581,10 +618,10 @@ func (tq *TicketQuery) sqlAll(ctx context.Context) ([]*Ticket, error) {
 		ids := make([]int, 0, len(nodes))
 		nodeids := make(map[int][]*Ticket)
 		for i := range nodes {
-			if nodes[i].ticket_parent == nil {
+			if nodes[i].ticket_children == nil {
 				continue
 			}
-			fk := *nodes[i].ticket_parent
+			fk := *nodes[i].ticket_children
 			if _, ok := nodeids[fk]; !ok {
 				ids = append(ids, fk)
 			}
@@ -598,11 +635,40 @@ func (tq *TicketQuery) sqlAll(ctx context.Context) ([]*Ticket, error) {
 		for _, n := range neighbors {
 			nodes, ok := nodeids[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "ticket_parent" returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "ticket_children" returned %v`, n.ID)
 			}
 			for i := range nodes {
 				nodes[i].Edges.Parent = n
 			}
+		}
+	}
+
+	if query := tq.withChildren; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Ticket)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Children = []*Ticket{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Ticket(func(s *sql.Selector) {
+			s.Where(sql.InValues(ticket.ChildrenColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.ticket_children
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "ticket_children" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "ticket_children" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Children = append(node.Edges.Children, n)
 		}
 	}
 

@@ -60,7 +60,7 @@ var (
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"epic", "story", "bug", "task"}},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"backlog", "development", "qa", "release"}},
 		{Name: "project_tickets", Type: field.TypeInt, Nullable: true},
-		{Name: "ticket_parent", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "ticket_children", Type: field.TypeInt, Nullable: true},
 		{Name: "user_reported_tickets", Type: field.TypeInt, Nullable: true},
 		{Name: "user_assigned_tickets", Type: field.TypeInt, Nullable: true},
 	}
@@ -77,7 +77,7 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "tickets_tickets_parent",
+				Symbol:     "tickets_tickets_children",
 				Columns:    []*schema.Column{TicketsColumns[6]},
 				RefColumns: []*schema.Column{TicketsColumns[0]},
 				OnDelete:   schema.SetNull,

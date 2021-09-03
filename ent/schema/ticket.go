@@ -29,6 +29,6 @@ func (Ticket) Edges() []ent.Edge {
 		edge.From("project", Project.Type).Ref("tickets").Unique(),
 		edge.From("reporter", User.Type).Ref("reported_tickets").Unique(),
 		edge.From("assignee", User.Type).Ref("assigned_tickets").Unique(),
-		edge.To("parent", Ticket.Type).Unique(),
+		edge.To("children", Ticket.Type).From("parent").Unique(),
 	}
 }

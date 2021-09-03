@@ -86,7 +86,7 @@ func main() {
 
 	projectUseCase := usecase.NewProject(serverConfig, projectRepository, languageRepository, userRepository)
 	languageUseCase := usecase.NewLanguage(languageRepository)
-	ticketUseCase := usecase.NewTicket(ticketRepository)
+	ticketUseCase := usecase.NewTicket(ticketRepository, userRepository, projectRepository)
 
 	projectHandler := handler.NewProject(projectUseCase)
 	languageHandler := handler.NewLanguage(languageUseCase)

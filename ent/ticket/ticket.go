@@ -27,6 +27,8 @@ const (
 	EdgeAssignee = "assignee"
 	// EdgeParent holds the string denoting the parent edge name in mutations.
 	EdgeParent = "parent"
+	// EdgeChildren holds the string denoting the children edge name in mutations.
+	EdgeChildren = "children"
 	// Table holds the table name of the ticket in the database.
 	Table = "tickets"
 	// ProjectTable is the table that holds the project relation/edge.
@@ -53,7 +55,11 @@ const (
 	// ParentTable is the table that holds the parent relation/edge.
 	ParentTable = "tickets"
 	// ParentColumn is the table column denoting the parent relation/edge.
-	ParentColumn = "ticket_parent"
+	ParentColumn = "ticket_children"
+	// ChildrenTable is the table that holds the children relation/edge.
+	ChildrenTable = "tickets"
+	// ChildrenColumn is the table column denoting the children relation/edge.
+	ChildrenColumn = "ticket_children"
 )
 
 // Columns holds all SQL columns for ticket fields.
@@ -69,7 +75,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"project_tickets",
-	"ticket_parent",
+	"ticket_children",
 	"user_reported_tickets",
 	"user_assigned_tickets",
 }

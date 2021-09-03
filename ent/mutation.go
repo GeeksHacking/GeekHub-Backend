@@ -1623,6 +1623,9 @@ type TicketMutation struct {
 	clearedassignee bool
 	parent          *int
 	clearedparent   bool
+	children        map[int]struct{}
+	removedchildren map[int]struct{}
+	clearedchildren bool
 	done            bool
 	oldValue        func(context.Context) (*Ticket, error)
 	predicates      []predicate.Ticket
@@ -2007,6 +2010,60 @@ func (m *TicketMutation) ResetParent() {
 	m.clearedparent = false
 }
 
+// AddChildIDs adds the "children" edge to the Ticket entity by ids.
+func (m *TicketMutation) AddChildIDs(ids ...int) {
+	if m.children == nil {
+		m.children = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.children[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildren clears the "children" edge to the Ticket entity.
+func (m *TicketMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the Ticket entity was cleared.
+func (m *TicketMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// RemoveChildIDs removes the "children" edge to the Ticket entity by IDs.
+func (m *TicketMutation) RemoveChildIDs(ids ...int) {
+	if m.removedchildren == nil {
+		m.removedchildren = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.children, ids[i])
+		m.removedchildren[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildren returns the removed IDs of the "children" edge to the Ticket entity.
+func (m *TicketMutation) RemovedChildrenIDs() (ids []int) {
+	for id := range m.removedchildren {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+func (m *TicketMutation) ChildrenIDs() (ids []int) {
+	for id := range m.children {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *TicketMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+	m.removedchildren = nil
+}
+
 // Where appends a list predicates to the TicketMutation builder.
 func (m *TicketMutation) Where(ps ...predicate.Ticket) {
 	m.predicates = append(m.predicates, ps...)
@@ -2176,7 +2233,7 @@ func (m *TicketMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TicketMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.project != nil {
 		edges = append(edges, ticket.EdgeProject)
 	}
@@ -2188,6 +2245,9 @@ func (m *TicketMutation) AddedEdges() []string {
 	}
 	if m.parent != nil {
 		edges = append(edges, ticket.EdgeParent)
+	}
+	if m.children != nil {
+		edges = append(edges, ticket.EdgeChildren)
 	}
 	return edges
 }
@@ -2212,13 +2272,22 @@ func (m *TicketMutation) AddedIDs(name string) []ent.Value {
 		if id := m.parent; id != nil {
 			return []ent.Value{*id}
 		}
+	case ticket.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.children))
+		for id := range m.children {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TicketMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.removedchildren != nil {
+		edges = append(edges, ticket.EdgeChildren)
+	}
 	return edges
 }
 
@@ -2226,13 +2295,19 @@ func (m *TicketMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *TicketMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case ticket.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.removedchildren))
+		for id := range m.removedchildren {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TicketMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedproject {
 		edges = append(edges, ticket.EdgeProject)
 	}
@@ -2244,6 +2319,9 @@ func (m *TicketMutation) ClearedEdges() []string {
 	}
 	if m.clearedparent {
 		edges = append(edges, ticket.EdgeParent)
+	}
+	if m.clearedchildren {
+		edges = append(edges, ticket.EdgeChildren)
 	}
 	return edges
 }
@@ -2260,6 +2338,8 @@ func (m *TicketMutation) EdgeCleared(name string) bool {
 		return m.clearedassignee
 	case ticket.EdgeParent:
 		return m.clearedparent
+	case ticket.EdgeChildren:
+		return m.clearedchildren
 	}
 	return false
 }
@@ -2299,6 +2379,9 @@ func (m *TicketMutation) ResetEdge(name string) error {
 		return nil
 	case ticket.EdgeParent:
 		m.ResetParent()
+		return nil
+	case ticket.EdgeChildren:
+		m.ResetChildren()
 		return nil
 	}
 	return fmt.Errorf("unknown Ticket edge %s", name)

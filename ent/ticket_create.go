@@ -121,6 +121,21 @@ func (tc *TicketCreate) SetParent(t *Ticket) *TicketCreate {
 	return tc.SetParentID(t.ID)
 }
 
+// AddChildIDs adds the "children" edge to the Ticket entity by IDs.
+func (tc *TicketCreate) AddChildIDs(ids ...int) *TicketCreate {
+	tc.mutation.AddChildIDs(ids...)
+	return tc
+}
+
+// AddChildren adds the "children" edges to the Ticket entity.
+func (tc *TicketCreate) AddChildren(t ...*Ticket) *TicketCreate {
+	ids := make([]int, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return tc.AddChildIDs(ids...)
+}
+
 // Mutation returns the TicketMutation object of the builder.
 func (tc *TicketCreate) Mutation() *TicketMutation {
 	return tc.mutation
@@ -334,11 +349,11 @@ func (tc *TicketCreate) createSpec() (*Ticket, *sqlgraph.CreateSpec) {
 	}
 	if nodes := tc.mutation.ParentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
 			Table:   ticket.ParentTable,
 			Columns: []string{ticket.ParentColumn},
-			Bidi:    true,
+			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
@@ -349,7 +364,26 @@ func (tc *TicketCreate) createSpec() (*Ticket, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ticket_parent = &nodes[0]
+		_node.ticket_children = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := tc.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ticket.ChildrenTable,
+			Columns: []string{ticket.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: ticket.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
