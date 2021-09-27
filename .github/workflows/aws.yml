@@ -6,8 +6,7 @@ on:
       - v*
 
 env:
-  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.repository }} | tr '[A-Z]' '[a-z]'
-  VERSION: echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}
 
 jobs:
   build:
@@ -20,8 +19,12 @@ jobs:
 
       - name: Build image
         run: |
+          GHCR_IMAGE=$(echo $GHCR_IMAGE | tr '[A-Z]' '[a-z]')
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           docker build -f ./build/docker/Dockerfile -t $GHCR_IMAGE:$VERSION .
 
       - name: Push to Registry
         run: |
+          GHCR_IMAGE=$(echo $GHCR_IMAGE | tr '[A-Z]' '[a-z]')
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           docker push $GHCR_IMAGE:$VERSION
