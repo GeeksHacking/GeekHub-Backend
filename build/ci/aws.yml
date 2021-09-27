@@ -1,0 +1,27 @@
+name: Deploy to AWS
+
+on:
+  push:
+    tags:
+      - v*
+
+env:
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ github.ref }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          GHCR_IMAGE=$(echo $GHCR_IMAGE | tr '[A-Z]' '[a-z]')
+          docker build -f ./build/docker/Dockerfile -t $GHCR_IMAGE .
+
+      - name: Push to Registry
+        run: |
+          docker push $GHCR_IMAGE
